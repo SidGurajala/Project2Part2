@@ -1,0 +1,109 @@
+---
+title: "Project 2: Data Analysis Project Pipeline"
+author: "Sid Gurajala"
+date: "12/13/2020"
+output: html_document
+---
+
+<!--- Begin styling code. --->
+<style type="text/css">
+/* Whole document: */
+body{
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: 12pt;
+}
+h1.title {
+  font-size: 38px;
+  text-align: center;
+}
+h4.author {
+  font-size: 18px;
+  text-align: center;
+}
+h4.date {
+  font-size: 18px;
+  text-align: center;
+}
+</style>
+<!--- End styling code. --->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Project 2: Data Analysis Pipeline
+
+##Loading in Data, Sourcing Code, Calling Libraries
+```{r}
+#loading in gapminder data
+my_gapminder <- read.csv("../Data/my_gapminder.csv")
+#loading in penguins data
+my_penguins <- read.csv("../Data/my_penguins.csv")
+#sourcing my_rf_cv from Code folder
+source("../Code/my_rf_cv.R")
+#calling dplyr library
+library(dplyr)
+#calling randomForest library
+library(randomForest)
+#calling ggplot2 library
+library(ggplot2)
+```
+
+## my_rf_cv
+```{r fig.height = 5, fig.width = 10}
+#for loop filling mse_vector 2 with 30 k - 2 simulations
+mse_vector_two <- vector()
+for (i in 1:30) {
+  mse_vector_two[i] <- my_rf_cv(2)
+}
+#for loop filling mse_vector_five with 30 k = 5 simulations
+mse_vector_five <- vector()
+for (i in 1:30) {
+  mse_vector_five[i] <- my_rf_cv(5)
+}
+#for loop filling mse_vector_ten with 30 k = 10 simulations
+mse_vector_ten <- vector()
+for (i in 1:30) {
+  mse_vector_ten[i] <- my_rf_cv(10)
+}
+#Creating simulation results table
+mse_simulations <- data.frame("Simulation #" = seq(1:30),
+                              "k = 2" = mse_vector_two,
+                              "k = 5" = mse_vector_five,
+                              "k = 10" = mse_vector_ten)
+#writing csv of mse_simulations
+write.csv(mse_simulations, "../Output/Results/mse_simulations.csv")
+#creating DF of k value and MSE value for each k condition
+mse_two_df <- data.frame(MSE = mse_vector_two) %>% 
+               dplyr::mutate(k = "2")
+mse_five_df <- data.frame(MSE = mse_vector_five) %>% 
+                dplyr::mutate(k = "5")
+mse_ten_df <- data.frame(MSE = mse_vector_ten) %>% 
+               dplyr::mutate(k = "10")
+#putting all data frames together
+mse_df <- rbind(mse_two_df, mse_five_df, mse_ten_df)
+#code for plot 
+g_rf_cv <- ggplot(data = mse_df) +
+            geom_boxplot(aes(x = k, y = MSE, fill = k)) +
+            theme_bw() +
+            scale_x_discrete("Number of Folds") +
+            labs(title = "30 Random Forest simulations at 2, 5, and 10 Folds",
+                 y = "Mean Squared Error Value",
+                 x = "Number of Folds") +
+            theme(plot.title = element_text(hjust = 0.5, 
+                                            face = "bold", size = 14))
+#saving boxplots 
+ggsave("../Output/Figures/rf_cv.png", g_rf_cv)
+#creating vector of k values
+kvalues <- c(2, 5, 10)
+#calculating means
+means <- c(mean(mse_vector_two), mean(mse_vector_five), mean(mse_vector_ten))
+#calculating standard deviations 
+sds <- c(sd(mse_vector_two), sd(mse_vector_five), sd(mse_vector_ten))
+#creating mse_table
+mse_table <- data.frame("K Value" = kvalues,
+                        "Mean MSE" = means,
+                        "SD" = sds)
+#save table
+saveRDS(mse_table, "../Output/Results/mse_table.RDS")
+```
